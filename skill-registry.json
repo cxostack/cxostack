@@ -1,0 +1,13 @@
+{
+  "known_skills": [
+    "frontend-design"
+  ],
+  "agent_skills": {
+    "frontend-developer": ["frontend-design"],
+    "backend-developer": [],
+    "qa": [],
+    "devops": [],
+    "code-reviewer": []
+  },
+  "missing_log": []
+}
