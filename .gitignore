@@ -1,5 +1,24 @@
+# Environment
 .env
+
+# Python
 __pycache__/
-.venv/
-state/session.json
 *.pyc
+*.pyo
+.venv/
+dist/
+*.egg-info/
+
+# Runtime state (never committed)
+state/session.json
+state/budget.json
+state/paused_tasks.json
+
+# Generated project files (private to each user)
+projects/
+
+# Git worktrees (created by developers during build)
+.worktrees/
+
+# macOS
+.DS_Store
