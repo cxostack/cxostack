@@ -27,7 +27,7 @@ def run_claude_agent(agent_name: str, prompt: str, mode: str = "avg") -> str:
     model_map = {
         "best": "claude-opus-4-6",
         "avg": "claude-sonnet-4-6",
-        "cheap": "claude-haiku-4-5",
+        "cheap": "claude-haiku-4-5-20251001",
     }
     model = model_map.get(mode, "claude-sonnet-4-6")
     result = subprocess.run(
@@ -101,14 +101,16 @@ def cmd_status():
         budget = json.loads(Path("state/budget.json").read_text())
         session = json.loads(Path("state/session.json").read_text())
         paused = json.loads(Path("state/paused_tasks.json").read_text())
-    except FileNotFoundError as exc:
-        console.print(f"[yellow]Warning: state file not found — {exc}[/]")
+    except (FileNotFoundError, json.JSONDecodeError, PermissionError) as exc:
+        console.print(f"[yellow]Warning: could not read state — {exc}[/]")
         return
 
     console.print("\n[bold]── Budget ──[/]")
     for model, data in budget.items():
-        pct = (data["used"] / data["limit"] * 100) if data["limit"] else 0
-        console.print(f"  {model}: {data['used']:,} / {data['limit']:,} ({pct:.1f}%)")
+        used = data.get("used", 0)
+        limit = data.get("limit", 0)
+        pct = (used / limit * 100) if limit else 0
+        console.print(f"  {model}: {used:,} / {limit:,} ({pct:.1f}%)")
 
     console.print("\n[bold]── Session ──[/]")
     console.print(f"  Phase: {session.get('phase', 'none')}")
@@ -123,7 +125,10 @@ def cmd_status():
 
 
 def cmd_skills(args: list):
-    subprocess.run(["./skills.sh"] + args, cwd=Path.cwd())
+    skills_path = Path(__file__).parent / "skills.sh"
+    result = subprocess.run([str(skills_path)] + args, cwd=Path(__file__).parent)
+    if result.returncode != 0:
+        console.print(f"[red]skills.sh failed with exit code {result.returncode}[/]")
 
 
 def main():
@@ -149,9 +154,12 @@ def main():
         if cmd == "/cto":
             if rest.startswith("onboard"):
                 cmd_cto_onboard(mode)
-            elif rest.startswith("continue "):
-                phase = rest.split()[1]
-                cmd_cto_continue(phase, mode)
+            elif rest.startswith("continue"):
+                tokens = rest.split()
+                if len(tokens) < 2:
+                    console.print("[red]Usage:[/] /cto continue <phase>")
+                else:
+                    cmd_cto_continue(tokens[1], mode)
             elif rest == "status":
                 cmd_cto_status()
             elif not rest:
@@ -180,7 +188,12 @@ def main():
         elif cmd == "/tl":
             if "review pr:" in rest:
                 url = rest.split("pr:")[1].strip()
-                cmd_tl_review(url, mode)
+                if not url.startswith("https://github.com/"):
+                    console.print(
+                        "[red]Error:[/] URL must be a GitHub PR URL (https://github.com/...)"
+                    )
+                else:
+                    cmd_tl_review(url, mode)
             else:
                 console.print("[red]Usage:[/] /tl review pr: <url>")
 
