@@ -1,0 +1,18 @@
+[project]
+name = "cxostack"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=0.83.0",
+    "gitpython>=3.1.46",
+    "groq>=1.0.0",
+    "prompt-toolkit>=3.0.52",
+    "python-dotenv>=1.2.1",
+    "rich>=14.3.3",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.2",
+]
