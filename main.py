@@ -14,12 +14,12 @@ load_dotenv()
 console = Console()
 
 BANNER = """
-[bold red] ██████╗[/][bold yellow]██╗  ██╗[/][bold green] ██████╗ [/][bold blue]███████╗[/][bold magenta]████████╗[/][bold cyan] █████╗ [/][bold white] ██████╗██╗  ██╗[/]
-[bold red]██╔════╝[/][bold yellow]╚██╗██╔╝[/][bold green]██╔═══██╗[/][bold blue]██╔════╝[/][bold magenta]╚══██╔══╝[/][bold cyan]██╔══██╗[/][bold white]██╔════╝██║ ██╔╝[/]
-[bold red]██║      [/][bold yellow] ╚███╔╝ [/][bold green]██║   ██║[/][bold blue]███████╗[/][bold magenta]   ██║   [/][bold cyan]███████║[/][bold white]██║     █████╔╝ [/]
-[bold red]██║      [/][bold yellow] ██╔██╗ [/][bold green]██║   ██║[/][bold blue]╚════██║[/][bold magenta]   ██║   [/][bold cyan]██╔══██║[/][bold white]██║     ██╔═██╗ [/]
-[bold red]╚██████╗[/][bold yellow]██╔╝ ██╗[/][bold green]╚██████╔╝[/][bold blue]███████║[/][bold magenta]   ██║   [/][bold cyan]██║  ██║[/][bold white]╚██████╗██║  ██╗[/]
-[bold red] ╚═════╝[/][bold yellow]╚═╝  ╚═╝[/][bold green] ╚═════╝ [/][bold blue]╚══════╝[/][bold magenta]   ╚═╝   [/][bold cyan]╚═╝  ╚═╝[/][bold white] ╚═════╝╚═╝  ╚═╝[/]
+[bold #a1a1a1] ██████╗ ██╗   ██╗ ██████╗  ███████╗████████╗ █████╗  ██████╗██╗  ██╗[/]
+[bold #a1a1a1]██╔════╝ ╚██╗ ██╔╝██╔═══██╗ ██╔════╝╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝[/]
+[bold #a1a1a1]██║        ╚███╔╝ ██║   ██║ ███████╗   ██║   ███████║██║     █████╔╝ [/]
+[bold #a1a1a1]██║        ██╔██╗ ██║   ██║ ╚════██║   ██║   ██╔══██║██║     ██╔═██╗ [/]
+[bold #a1a1a1]╚██████╗ ██╔╝ ║██╗ ██████║  ███████║   ██║   ██║  ██║╚██████╗██║  ██╗[/]
+[bold #a1a1a1] ╚═════╝ ╚═╝   ╚═╝ ╚════╝   ╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝[/]
 """
 
 
@@ -36,8 +36,9 @@ def run_claude_agent(agent_name: str, prompt: str, mode: str = "avg") -> str:
         text=True,
         cwd=Path.cwd(),
     )
+
     if result.returncode != 0:
-        console.print(f"[red]Agent {agent_name} error:[/] {result.stderr}")
+        console.print(f"[red]Agent {agent_name} error:[/] {result.stdout}")
         return ""
     return result.stdout.strip()
 
@@ -80,7 +81,7 @@ def cmd_cto_status():
 
 def cmd_cmo(project: str, mode: str):
     console.print(
-        f"\n[bold blue][CMO][/] Building GTM strategy for: [italic]{project}[/]\n"
+        f"\n[bold #a1a1a1][CMO][/] Building GTM strategy for: [italic]{project}[/]\n"
     )
     output = run_claude_agent("cmo", f"GTM strategy for project: {project}", mode=mode)
     console.print(output)
@@ -102,7 +103,7 @@ def cmd_status():
         session = json.loads(Path("state/session.json").read_text())
         paused = json.loads(Path("state/paused_tasks.json").read_text())
     except (FileNotFoundError, json.JSONDecodeError, PermissionError) as exc:
-        console.print(f"[yellow]Warning: could not read state — {exc}[/]")
+        console.print(f"[white]Warning: could not read state — {exc}[/]")
         return
 
     console.print("\n[bold]── Budget ──[/]")
@@ -139,7 +140,7 @@ def main():
 
     while True:
         try:
-            raw = Prompt.ask("[bold green]cxostack>[/]").strip()
+            raw = Prompt.ask("[bold #a1a1a1]cxostack>[/]").strip()
         except (KeyboardInterrupt, EOFError):
             console.print("\n[dim]Bye.[/]")
             break
@@ -177,12 +178,12 @@ def main():
 
         elif cmd == "/ciso":
             console.print(
-                "[yellow]CISO agent: coming in a future sprint. See docs/agents/ciso.md[/]"
+                "[white]CISO agent: coming in a future sprint. See docs/agents/ciso.md[/]"
             )
 
         elif cmd == "/sre":
             console.print(
-                "[yellow]SRE agent: coming in a future sprint. See docs/agents/sre.md[/]"
+                "[white]SRE agent: coming in a future sprint. See docs/agents/sre.md[/]"
             )
 
         elif cmd == "/tl":
@@ -201,7 +202,7 @@ def main():
             cmd_status()
 
         elif cmd == "/resume":
-            console.print("[yellow]Resuming paused tasks...[/]")
+            console.print("[white]Resuming paused tasks...[/]")
             output = run_claude_agent(
                 "cto",
                 "Resume all paused tasks from state/paused_tasks.json",
@@ -218,7 +219,7 @@ def main():
         elif cmd == "/mode":
             if rest in ("best", "avg", "cheap"):
                 mode = rest
-                console.print(f"[green]Mode set to:[/] {mode}")
+                console.print(f"[white]Mode set to:[/] {mode}")
             else:
                 console.print("[red]Usage:[/] /mode best|avg|cheap")
 
