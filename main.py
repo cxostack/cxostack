@@ -13,6 +13,14 @@ from rich.prompt import Prompt
 load_dotenv()
 console = Console()
 
+
+def _mask_key(value: str) -> str:
+    """Return a masked display string for an API key."""
+    if len(value) <= 8:
+        return "***"
+    return value[:6] + "***" + value[-2:]
+
+
 BANNER = """
 [bold #a1a1a1] ██████╗ ██╗   ██╗ ██████╗  ███████╗████████╗ █████╗  ██████╗██╗  ██╗[/]
 [bold #a1a1a1]██╔════╝ ╚██╗ ██╔╝██╔═══██╗ ██╔════╝╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝[/]
@@ -147,7 +155,6 @@ def main():
 
         if not raw:
             continue
-
         parts = raw.split(" ", 1)
         cmd = parts[0]
         rest = parts[1] if len(parts) > 1 else ""
