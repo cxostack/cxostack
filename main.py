@@ -21,6 +21,28 @@ def _mask_key(value: str) -> str:
     return value[:6] + "***" + value[-2:]
 
 
+def _write_env_key(key: str, value: str, env_path: Path = Path(".env")) -> None:
+    """Write or update a key=value line in the .env file."""
+    if not env_path.exists():
+        env_path.write_text(f"{key}={value}\n")
+        return
+
+    lines = env_path.read_text().splitlines(keepends=True)
+    updated = False
+    result = []
+    for line in lines:
+        if line.startswith(f"{key}=") or line.startswith(f"{key} ="):
+            result.append(f"{key}={value}\n")
+            updated = True
+        else:
+            result.append(line)
+
+    if not updated:
+        result.append(f"{key}={value}\n")
+
+    env_path.write_text("".join(result))
+
+
 BANNER = """
 [bold #a1a1a1] ██████╗ ██╗   ██╗ ██████╗  ███████╗████████╗ █████╗  ██████╗██╗  ██╗[/]
 [bold #a1a1a1]██╔════╝ ╚██╗ ██╔╝██╔═══██╗ ██╔════╝╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝[/]
