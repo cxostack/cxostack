@@ -221,6 +221,7 @@ def cmd_cto(idea: str, mode: str = "avg"):
 
 def cmd_cto_onboard(mode: str):
     console.print("\n[bold red][CTO][/] Running founder onboarding...\n")
+    setup_providers()
     output = run_claude_agent(
         "cto",
         "Run onboard: interview the founder and write ~/.cxostack/founder-profile.md",
