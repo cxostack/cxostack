@@ -52,6 +52,146 @@ BANNER = """
 [bold #a1a1a1] ╚═════╝ ╚═╝   ╚═╝ ╚════╝   ╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝[/]
 """
 
+PROVIDERS: list[dict] = [
+    # Required — always prompted
+    {
+        "name": "Anthropic",
+        "key": "ANTHROPIC_API_KEY",
+        "required": True,
+        "models": "claude-opus-4-6, claude-sonnet-4-6, claude-haiku-4-5",
+    },
+    {
+        "name": "GitHub",
+        "key": "GITHUB_TOKEN",
+        "required": True,
+        "models": "repo management via gh CLI",
+    },
+    # Optional — user selects
+    {
+        "name": "OpenAI",
+        "key": "OPENAI_API_KEY",
+        "required": False,
+        "models": "gpt-4o, gpt-4o-mini",
+    },
+    {
+        "name": "Groq",
+        "key": "GROQ_API_KEY",
+        "required": False,
+        "models": "llama-3.1-8b-instant (fast, free tier)",
+    },
+    {
+        "name": "Mistral",
+        "key": "MISTRAL_API_KEY",
+        "required": False,
+        "models": "mistral-large-latest",
+    },
+    {
+        "name": "Together.ai",
+        "key": "TOGETHER_API_KEY",
+        "required": False,
+        "models": "open-source model catalog",
+    },
+    {
+        "name": "Google",
+        "key": "GOOGLE_API_KEY",
+        "required": False,
+        "models": "gemini-1.5-pro, gemini-flash",
+    },
+    {
+        "name": "Cohere",
+        "key": "COHERE_API_KEY",
+        "required": False,
+        "models": "command-r-plus",
+    },
+]
+
+
+def setup_providers() -> None:
+    """Interactive provider key-collection flow. Called at the start of /cto onboard."""
+    from dotenv import dotenv_values
+    from rich.table import Table
+
+    existing = dotenv_values(".env")
+    required = [p for p in PROVIDERS if p["required"]]
+    optional = [p for p in PROVIDERS if not p["required"]]
+
+    # ── Step 1: Required providers ────────────────────────────────────────────
+    console.print("\n[bold]── Step 1: Required providers ──[/]")
+
+    for provider in required:
+        key_name = provider["key"]
+        current = existing.get(key_name, "")
+
+        if current:
+            console.print(
+                f"  [dim]{key_name}[/] [green][{_mask_key(current)} — already set][/]"
+            )
+            new_val = Prompt.ask(
+                "  Press Enter to keep, or type a new key",
+                password=True,
+                default="",
+            )
+            if new_val.strip():
+                _write_env_key(key_name, new_val.strip())
+        else:
+            while True:
+                val = Prompt.ask(f"  {key_name}", password=True)
+                if val.strip():
+                    _write_env_key(key_name, val.strip())
+                    break
+                console.print(
+                    f"  [red]{key_name} is required — please enter a value.[/]"
+                )
+
+    # ── Step 2: Optional providers ────────────────────────────────────────────
+    console.print("\n[bold]── Step 2: Optional providers ──[/]")
+
+    table = Table(show_header=False, box=None, padding=(0, 2))
+    for i, provider in enumerate(optional, 1):
+        already = "[green]✓[/] " if existing.get(provider["key"]) else "  "
+        table.add_row(
+            f"[dim]{i}[/]",
+            f"{already}[bold]{provider['name']}[/]",
+            f"[dim]{provider['models']}[/]",
+        )
+    console.print(table)
+
+    raw = Prompt.ask(
+        "\n  Select providers to activate (comma-separated, Enter to skip)",
+        default="",
+    )
+
+    if raw.strip():
+        selections: list[dict] = []
+        for part in raw.split(","):
+            part = part.strip()
+            if part.isdigit():
+                idx = int(part) - 1
+                if 0 <= idx < len(optional):
+                    selections.append(optional[idx])
+
+        for provider in selections:
+            key_name = provider["key"]
+            current = existing.get(key_name, "")
+
+            if current:
+                console.print(
+                    f"  [dim]{key_name}[/] [green][{_mask_key(current)} — already set][/]"
+                )
+                new_val = Prompt.ask(
+                    "  Press Enter to keep, or type a new key",
+                    password=True,
+                    default="",
+                )
+                if new_val.strip():
+                    _write_env_key(key_name, new_val.strip())
+            else:
+                val = Prompt.ask(f"  {key_name}", password=True)
+                if val.strip():
+                    _write_env_key(key_name, val.strip())
+
+    console.print("\n[green]Keys saved to .env ✓[/]\n")
+
 
 def run_claude_agent(agent_name: str, prompt: str, mode: str = "avg") -> str:
     model_map = {
