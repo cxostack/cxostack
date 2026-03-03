@@ -62,3 +62,13 @@ def test_write_env_key_preserves_comments():
         content = env_path.read_text()
         assert "# Required\n" in content
         assert "ANTHROPIC_API_KEY=updated\n" in content
+
+
+def test_write_env_key_no_trailing_newline():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        env_path = Path(tmpdir) / ".env"
+        env_path.write_text("EXISTING=value")  # no trailing newline
+        _write_env_key("NEW_KEY", "newval", env_path=env_path)
+        content = env_path.read_text()
+        assert "EXISTING=value\n" in content
+        assert "NEW_KEY=newval\n" in content

@@ -12,6 +12,7 @@ from rich.prompt import Prompt
 
 load_dotenv()
 console = Console()
+_ENV_PATH = Path(__file__).parent / ".env"
 
 
 def _mask_key(value: str) -> str:
@@ -21,7 +22,7 @@ def _mask_key(value: str) -> str:
     return value[:6] + "***" + value[-2:]
 
 
-def _write_env_key(key: str, value: str, env_path: Path = Path(".env")) -> None:
+def _write_env_key(key: str, value: str, env_path: Path = _ENV_PATH) -> None:
     """Write or update a key=value line in the .env file."""
     if not env_path.exists():
         env_path.write_text(f"{key}={value}\n")
@@ -38,6 +39,8 @@ def _write_env_key(key: str, value: str, env_path: Path = Path(".env")) -> None:
             result.append(line)
 
     if not updated:
+        if result and not result[-1].endswith("\n"):
+            result[-1] += "\n"
         result.append(f"{key}={value}\n")
 
     env_path.write_text("".join(result))
@@ -111,7 +114,7 @@ def setup_providers() -> None:
     from dotenv import dotenv_values
     from rich.table import Table
 
-    existing = dotenv_values(".env")
+    existing = dotenv_values(_ENV_PATH)
     required = [p for p in PROVIDERS if p["required"]]
     optional = [p for p in PROVIDERS if not p["required"]]
 
@@ -142,6 +145,9 @@ def setup_providers() -> None:
                 console.print(
                     f"  [red]{key_name} is required — please enter a value.[/]"
                 )
+
+    # reload after Step 1 writes to capture any updated keys
+    existing = dotenv_values(_ENV_PATH)
 
     # ── Step 2: Optional providers ────────────────────────────────────────────
     console.print("\n[bold]── Step 2: Optional providers ──[/]")
