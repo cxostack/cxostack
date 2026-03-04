@@ -58,12 +58,6 @@ BANNER = """
 PROVIDERS: list[dict] = [
     # Required — always prompted
     {
-        "name": "Anthropic",
-        "key": "ANTHROPIC_API_KEY",
-        "required": True,
-        "models": "claude-opus-4-6, claude-sonnet-4-6, claude-haiku-4-5",
-    },
-    {
         "name": "GitHub",
         "key": "GITHUB_TOKEN",
         "required": True,
