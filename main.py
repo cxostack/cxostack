@@ -103,11 +103,37 @@ PROVIDERS: list[dict] = [
 ]
 
 
+def _ensure_auth() -> None:
+    """Verify Claude CLI and GitHub CLI are authenticated. Prompt login if not."""
+    # Claude CLI
+    result = subprocess.run(
+        ["claude", "auth", "status"], capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        console.print(
+            "[yellow]Claude CLI not logged in — launching claude auth login...[/]"
+        )
+        subprocess.run(["claude", "auth", "login"])
+    else:
+        console.print("[green]✓[/] Claude CLI authenticated")
+
+    # GitHub CLI
+    result = subprocess.run(["gh", "auth", "status"], capture_output=True, text=True)
+    if result.returncode != 0:
+        console.print(
+            "[yellow]GitHub CLI not logged in — launching gh auth login...[/]"
+        )
+        subprocess.run(["gh", "auth", "login"])
+    else:
+        console.print("[green]✓[/] GitHub CLI authenticated")
+
+
 def setup_providers() -> None:
     """Interactive provider key-collection flow. Called at the start of /cto onboard."""
     from dotenv import dotenv_values
     from rich.table import Table
 
+    _ensure_auth()
     existing = dotenv_values(_ENV_PATH)
     required = [p for p in PROVIDERS if p["required"]]
     optional = [p for p in PROVIDERS if not p["required"]]
