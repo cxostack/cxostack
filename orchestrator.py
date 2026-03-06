@@ -161,6 +161,7 @@ def dispatch(
 
         if file and line is not None:
             _write_at_line(file, line, output)
+            _ruff_format(file)
         else:
             print(output)
     else:

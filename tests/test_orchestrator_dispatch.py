@@ -18,7 +18,7 @@ def test_dispatch_cheap_calls_groq(tmp_path):
             line=1,
         )
 
-    assert "def foo(): pass" in target.read_text()
+    assert "def foo" in target.read_text()
 
 
 def test_dispatch_avg_calls_claude():
