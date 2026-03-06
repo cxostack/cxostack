@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv run pytest tests/test_groq_relay.py -v)"
+    ]
+  }
+}

@@ -22,3 +22,8 @@ projects/
 
 # macOS
 .DS_Store
+
+
+# Agent skills downloaded at runtime
+.agents/skills/
+.claude/skills/
