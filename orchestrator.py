@@ -6,7 +6,6 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 from rich.console import Console
-from tools.groq_relay import call_groq  # noqa: F401 — imported for module-level patching
 
 console = Console()
 
@@ -156,6 +155,8 @@ def dispatch(
     model = get_model(agent, mode)
 
     if model.startswith("groq/"):
+        from tools.groq_relay import call_groq
+
         groq_model = model.split("/", 1)[1]
         output = call_groq(task, groq_model)
 
@@ -188,8 +189,22 @@ def dispatch(
 
 
 def _write_at_line(file_path: str, line: int, content: str) -> None:
-    """Insert content at line number in file_path (1-indexed)."""
+    """Insert content before line number in file_path (1-indexed).
+
+    Args:
+        file_path: Path to the target file. Must exist.
+        line: 1-indexed line number to insert before. Must be >= 1.
+        content: Text to insert. A trailing newline is added automatically.
+
+    Raises:
+        ValueError: If line < 1.
+        FileNotFoundError: If file_path does not exist.
+    """
+    if line < 1:
+        raise ValueError(f"line must be >= 1, got {line}")
     path = Path(file_path)
+    if not path.exists():
+        raise FileNotFoundError(f"File not found: {file_path}")
     lines = path.read_text().splitlines(keepends=True)
     idx = line - 1
     lines.insert(idx, content + "\n")
@@ -197,8 +212,11 @@ def _write_at_line(file_path: str, line: int, content: str) -> None:
 
 
 def _ruff_format(file_path: str) -> None:
-    """Run ruff format on file_path. Silently skips if ruff not available."""
-    subprocess.run(["ruff", "format", file_path], capture_output=True)
+    """Run ruff format on file_path. Silently skips if ruff is not available."""
+    try:
+        subprocess.run(["ruff", "format", file_path], capture_output=True)
+    except FileNotFoundError:
+        pass
 
 
 if __name__ == "__main__":
