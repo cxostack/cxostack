@@ -10,10 +10,7 @@ dist/
 *.egg-info/
 
 # Runtime state (never committed)
-state/session.json
-state/budget.json
-state/paused_tasks.json
-
+state/
 # Generated project files (private to each user)
 projects/
 
@@ -27,3 +24,4 @@ projects/
 # Agent skills downloaded at runtime
 .agents/skills/
 .claude/skills/
+

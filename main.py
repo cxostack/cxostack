@@ -219,30 +219,35 @@ def setup_providers() -> None:
     console.print("\n[green]Keys saved to .env ✓[/]\n")
 
 
-def run_claude_agent(agent_name: str, prompt: str, mode: str = "avg") -> str:
+def run_claude_agent(agent_name: str, prompt: str, mode: str = "avg") -> None:
+    """Spawn a Claude agent interactively, connected to the terminal.
+
+    Uses the user's Claude subscription (no API credits required).
+    Output streams directly to the terminal — nothing is captured.
+    """
     model_map = {
         "best": "claude-opus-4-6",
         "avg": "claude-sonnet-4-6",
         "cheap": "claude-haiku-4-5-20251001",
     }
     model = model_map.get(mode, "claude-sonnet-4-6")
-    result = subprocess.run(
-        ["claude", "--agent", agent_name, "--model", model, "-p", prompt],
-        capture_output=True,
-        text=True,
+    subprocess.run(
+        [
+            "claude",
+            "--dangerously-skip-permissions",
+            "--agent",
+            agent_name,
+            "--model",
+            model,
+            prompt
+        ],
         cwd=Path.cwd(),
     )
-
-    if result.returncode != 0:
-        console.print(f"[red]Agent {agent_name} error:[/] {result.stdout}")
-        return ""
-    return result.stdout.strip()
 
 
 def cmd_cto(idea: str, mode: str = "avg"):
     console.print(f"\n[bold red][CTO][/] Starting project: [italic]{idea}[/]\n")
-    output = run_claude_agent("cto", f"New project idea: {idea}", mode=mode)
-    console.print(output)
+    run_claude_agent("cto", f"New project idea: {idea}", mode=mode)
 
 
 _ONBOARD_QUESTIONS = [
@@ -268,61 +273,64 @@ def cmd_cto_onboard(mode: str):
         if i < total:
             console.print("[dim]Got it.[/]")
 
-    transcript = "\n".join(
-        f"Q{i}: {q}\nA{i}: {a}"
-        for i, (q, a) in enumerate(zip(_ONBOARD_QUESTIONS, answers), 1)
+    name_bg, product, stack, style, notes = answers
+    cxostack_dir = Path.home() / ".cxostack"
+    cxostack_dir.mkdir(exist_ok=True)
+
+    (cxostack_dir / "founder-profile.md").write_text(
+        f"# Founder Profile\n\n"
+        f"## Identity\n\n"
+        f"- **Name / Background:** {name_bg}\n"
+        f"- **Company / Product:** {product}\n\n"
+        f"## Products\n\n{product}\n\n"
+        f"## Tech Preferences\n\n{stack}\n\n"
+        f"## Communication Style\n\n{style}\n\n"
+        f"## Notes for CxOs\n\n{notes}\n"
     )
-    prompt = (
-        "A founder onboarding interview just completed. "
-        "Using memory/founder-profile.template.md as structure, write ~/.cxostack/founder-profile.md. "
-        "Using memory/cto-memory.template.md as structure, write ~/.cxostack/cto-memory.md "
-        "(fill in stack preferences from the answers). "
-        "Create ~/.cxostack/ if it does not exist.\n\n"
-        f"Interview transcript:\n{transcript}"
+    (cxostack_dir / "cto-memory.md").write_text(
+        f"# CTO Memory\n\n"
+        f"## Stack Preferences\n\n{stack}\n\n"
+        f"## Working Style\n\n{style}\n\n"
+        f"## Projects\n\n<!-- updated per project -->\n"
     )
-    output = run_claude_agent("cto", prompt, mode=mode)
-    console.print(output)
     console.print(
-        '\n[green]Profile saved. You\'re ready.[/] Try: [bold]/cto "your project idea"[/]'
+        "\n[green]Profile saved.[/] "
+        'You\'re ready. Try: [bold]/cxostack:cto idea "your project idea"[/]'
     )
 
 
 def cmd_cto_continue(phase: str, mode: str):
     console.print(f"\n[bold red][CTO][/] Continuing phase-{phase}...\n")
-    output = run_claude_agent(
+    run_claude_agent(
         "cto",
         f"Continue phase-{phase}: spawn team-leader for this phase. Read projects/ for context.",
         mode=mode,
     )
-    console.print(output)
 
 
 def cmd_cto_status():
     console.print("\n[bold red][CTO][/] Fetching project status...\n")
-    output = run_claude_agent(
+    run_claude_agent(
         "cto",
         "Report current project status from state/session.json",
         mode="avg",
     )
-    console.print(output)
 
 
 def cmd_cmo(project: str, mode: str):
     console.print(
         f"\n[bold #a1a1a1][CMO][/] Building GTM strategy for: [italic]{project}[/]\n"
     )
-    output = run_claude_agent("cmo", f"GTM strategy for project: {project}", mode=mode)
-    console.print(output)
+    run_claude_agent("cmo", f"GTM strategy for project: {project}", mode=mode)
 
 
 def cmd_tl_review(pr_url: str, mode: str):
     console.print(f"\n[bold purple][TL][/] Reviewing PR: {pr_url}\n")
-    output = run_claude_agent(
+    run_claude_agent(
         "team-leader",
         f"Review this PR: {pr_url}. Load the usecase.md from the PR description for context.",
         mode=mode,
     )
-    console.print(output)
 
 
 def cmd_status():
@@ -483,12 +491,11 @@ def main():
 
         elif cmd == "/resume":
             console.print("[white]Resuming paused tasks...[/]")
-            output = run_claude_agent(
+            run_claude_agent(
                 "cto",
                 "Resume all paused tasks from state/paused_tasks.json",
                 mode=mode,
             )
-            console.print(output)
 
         elif cmd == "/budget":
             cmd_status()
