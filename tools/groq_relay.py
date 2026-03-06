@@ -10,7 +10,9 @@ import os
 from groq import Groq
 
 
-def call_groq(prompt: str, model: str = "llama-3.1-8b-instant", system: str = "") -> str:
+def call_groq(
+    prompt: str, model: str = "llama-3.1-8b-instant", system: str = ""
+) -> str:
     """Call Groq API and return raw text output.
 
     Args:
