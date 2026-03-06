@@ -373,7 +373,13 @@ def _cli_mode() -> None:
     subparsers = parser.add_subparsers(dest="command")
 
     cto_p = subparsers.add_parser("cto")
-    cto_p.add_argument("subcommand_or_idea", nargs="?", default="")
+    cto_sub = cto_p.add_subparsers(dest="cto_command")
+    cto_idea_p = cto_sub.add_parser("idea")
+    cto_idea_p.add_argument("text")
+    cto_sub.add_parser("onboard")
+    cto_sub.add_parser("status")
+    cto_continue_p = cto_sub.add_parser("continue")
+    cto_continue_p.add_argument("phase")
 
     cmo_p = subparsers.add_parser("cmo")
     cmo_p.add_argument("project")
@@ -383,22 +389,18 @@ def _cli_mode() -> None:
     args = parser.parse_args()
 
     if args.command == "cto":
-        sub = args.subcommand_or_idea
-        if sub == "onboard":
+        cto_cmd = getattr(args, "cto_command", None)
+        if cto_cmd == "idea":
+            cmd_cto(args.text, args.mode)
+        elif cto_cmd == "onboard":
             cmd_cto_onboard(args.mode)
-        elif sub.startswith("continue"):
-            tokens = sub.split()
-            if len(tokens) < 2:
-                console.print("[red]Usage:[/] cxostack cto continue <phase>")
-            else:
-                cmd_cto_continue(tokens[1], args.mode)
-        elif sub == "status":
+        elif cto_cmd == "continue":
+            cmd_cto_continue(args.phase, args.mode)
+        elif cto_cmd == "status":
             cmd_cto_status()
-        elif sub:
-            cmd_cto(sub, args.mode)
         else:
             console.print(
-                "[red]Usage:[/] cxostack cto <idea|onboard|continue <phase>|status>"
+                "[red]Usage:[/] cxostack cto <idea <text>|onboard|continue <phase>|status>"
             )
 
     elif args.command == "cmo":
@@ -433,7 +435,6 @@ def main():
         if cmd == "/cto":
             if rest.startswith("onboard"):
                 cmd_cto_onboard(mode)
-                print("onbaording done")
             elif rest.startswith("continue"):
                 tokens = rest.split()
                 if len(tokens) < 2:
