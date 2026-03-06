@@ -6,6 +6,7 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 from rich.console import Console
+from tools.groq_relay import call_groq  # noqa: F401 — imported for module-level patching
 
 console = Console()
 
@@ -35,6 +36,7 @@ class Orchestrator:
         result = subprocess.run(
             [
                 "claude",
+                "--dangerously-skip-permissions",
                 "--agent",
                 agent_name,
                 "--model",
@@ -128,3 +130,100 @@ class Orchestrator:
 
         PAUSED_FILE.write_text("[]")
         return paused
+
+
+def dispatch(
+    agent: str,
+    task: str,
+    mode: str = "avg",
+    file: str | None = None,
+    line: int | None = None,
+) -> None:
+    """Route a task to the appropriate model based on mode.
+
+    cheap mode  → Groq API via groq_relay.call_groq; orchestrator writes file
+    avg/best    → claude --dangerously-skip-permissions --agent <role> --print -p
+
+    Args:
+        agent: Agent role name matching model_router.ROLE_MATRIX key.
+        task: Full task prompt to send to the model.
+        mode: Tier — "best", "avg", or "cheap".
+        file: Optional file path to write output into.
+        line: Optional line number to insert output at (1-indexed).
+    """
+    from model_router import get_model
+
+    model = get_model(agent, mode)
+
+    if model.startswith("groq/"):
+        groq_model = model.split("/", 1)[1]
+        output = call_groq(task, groq_model)
+
+        if file and line is not None:
+            _write_at_line(file, line, output)
+        else:
+            print(output)
+    else:
+        result = subprocess.run(
+            [
+                "claude",
+                "--dangerously-skip-permissions",
+                "--agent",
+                agent,
+                "--model",
+                model,
+                "--print",
+                "-p",
+                task,
+            ],
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent,
+        )
+        if result.returncode != 0:
+            console.print(f"[red]Agent {agent} error:[/] {result.stderr}")
+        else:
+            console.print(result.stdout)
+
+
+def _write_at_line(file_path: str, line: int, content: str) -> None:
+    """Insert content at line number in file_path (1-indexed)."""
+    path = Path(file_path)
+    lines = path.read_text().splitlines(keepends=True)
+    idx = line - 1
+    lines.insert(idx, content + "\n")
+    path.write_text("".join(lines))
+
+
+def _ruff_format(file_path: str) -> None:
+    """Run ruff format on file_path. Silently skips if ruff not available."""
+    subprocess.run(["ruff", "format", file_path], capture_output=True)
+
+
+if __name__ == "__main__":
+    import argparse
+    import sys
+
+    parser = argparse.ArgumentParser(prog="orchestrator")
+    subparsers = parser.add_subparsers(dest="command")
+
+    d = subparsers.add_parser("dispatch", help="Route a task to the right model")
+    d.add_argument("--agent", required=True)
+    d.add_argument("--task", required=True)
+    d.add_argument("--mode", default="avg")
+    d.add_argument("--file", default=None)
+    d.add_argument("--line", type=int, default=None)
+
+    args = parser.parse_args()
+
+    if args.command == "dispatch":
+        dispatch(
+            agent=args.agent,
+            task=args.task,
+            mode=args.mode,
+            file=args.file,
+            line=args.line,
+        )
+    else:
+        parser.print_help()
+        sys.exit(1)
