@@ -1,4 +1,5 @@
 """skill_registry.py — TL skill lookup and missing-skill logger."""
+
 import json
 from pathlib import Path
 
