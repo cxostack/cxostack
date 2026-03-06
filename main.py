@@ -227,7 +227,7 @@ def run_claude_agent(agent_name: str, prompt: str, mode: str = "avg") -> str:
     }
     model = model_map.get(mode, "claude-sonnet-4-6")
     result = subprocess.run(
-        ["claude", "--agent", agent_name, "--model", model, "--print", "-p", prompt],
+        ["claude", "--agent", agent_name, "--model", model, "-p", prompt],
         capture_output=True,
         text=True,
         cwd=Path.cwd(),
@@ -245,15 +245,46 @@ def cmd_cto(idea: str, mode: str = "avg"):
     console.print(output)
 
 
+_ONBOARD_QUESTIONS = [
+    "What's your name, and what's your background? (industry, previous roles, how technical are you?)",
+    "What are you building, or what's the product you're working on now?",
+    "What tech stack do you prefer? Any languages, frameworks, or cloud providers you want to stick with — or avoid?",
+    "How do you like to work? Fast rough drafts you iterate on, or thorough output the first time?",
+    "Anything else I should know before I start working for you?",
+]
+
+
 def cmd_cto_onboard(mode: str):
     console.print("\n[bold red][CTO][/] Running founder onboarding...\n")
     setup_providers()
-    output = run_claude_agent(
-        "cto",
-        "Run onboard: interview the founder and write ~/.cxostack/founder-profile.md",
-        mode=mode,
+
+    answers: list[str] = []
+    total = len(_ONBOARD_QUESTIONS)
+    for i, question in enumerate(_ONBOARD_QUESTIONS, 1):
+        console.print(f"\n[bold]Question {i} of {total}[/]")
+        console.print(question)
+        answer = Prompt.ask("  You")
+        answers.append(answer)
+        if i < total:
+            console.print("[dim]Got it.[/]")
+
+    transcript = "\n".join(
+        f"Q{i}: {q}\nA{i}: {a}"
+        for i, (q, a) in enumerate(zip(_ONBOARD_QUESTIONS, answers), 1)
     )
+    prompt = (
+        "A founder onboarding interview just completed. "
+        "Using memory/founder-profile.template.md as structure, write ~/.cxostack/founder-profile.md. "
+        "Using memory/cto-memory.template.md as structure, write ~/.cxostack/cto-memory.md "
+        "(fill in stack preferences from the answers). "
+        "Create ~/.cxostack/ if it does not exist.\n\n"
+        f"Interview transcript:\n{transcript}"
+    )
+    output = run_claude_agent("cto", prompt, mode=mode)
     console.print(output)
+    console.print(
+        '\n[green]Profile saved. You\'re ready.[/] Try: [bold]/cto "your project idea"[/]'
+    )
 
 
 def cmd_cto_continue(phase: str, mode: str):
@@ -329,6 +360,57 @@ def cmd_skills(args: list):
         console.print(f"[red]skills.sh failed with exit code {result.returncode}[/]")
 
 
+def _cli_mode() -> None:
+    """Handle CLI invocation: python main.py [--mode best|avg|cheap] <command> [args]"""
+    import argparse
+
+    parser = argparse.ArgumentParser(prog="cxostack")
+    parser.add_argument(
+        "--mode",
+        default=os.getenv("DEFAULT_MODE", "avg"),
+        choices=["best", "avg", "cheap"],
+    )
+    subparsers = parser.add_subparsers(dest="command")
+
+    cto_p = subparsers.add_parser("cto")
+    cto_p.add_argument("subcommand_or_idea", nargs="?", default="")
+
+    cmo_p = subparsers.add_parser("cmo")
+    cmo_p.add_argument("project")
+
+    subparsers.add_parser("status")
+
+    args = parser.parse_args()
+
+    if args.command == "cto":
+        sub = args.subcommand_or_idea
+        if sub == "onboard":
+            cmd_cto_onboard(args.mode)
+        elif sub.startswith("continue"):
+            tokens = sub.split()
+            if len(tokens) < 2:
+                console.print("[red]Usage:[/] cxostack cto continue <phase>")
+            else:
+                cmd_cto_continue(tokens[1], args.mode)
+        elif sub == "status":
+            cmd_cto_status()
+        elif sub:
+            cmd_cto(sub, args.mode)
+        else:
+            console.print(
+                "[red]Usage:[/] cxostack cto <idea|onboard|continue <phase>|status>"
+            )
+
+    elif args.command == "cmo":
+        cmd_cmo(args.project, args.mode)
+
+    elif args.command == "status":
+        cmd_status()
+
+    else:
+        parser.print_help()
+
+
 def main():
     console.print(BANNER)
     console.print("[dim]Type /cto <idea> to start · /help for commands[/]\n")
@@ -351,6 +433,7 @@ def main():
         if cmd == "/cto":
             if rest.startswith("onboard"):
                 cmd_cto_onboard(mode)
+                print("onbaording done")
             elif rest.startswith("continue"):
                 tokens = rest.split()
                 if len(tokens) < 2:
@@ -446,4 +529,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    if len(sys.argv) > 1:
+        _cli_mode()
+    else:
+        main()
