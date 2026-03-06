@@ -34,6 +34,7 @@ def test_call_groq_with_system_prompt():
 
 def test_call_groq_missing_key_raises():
     import pytest
+
     env = {k: v for k, v in os.environ.items() if k != "GROQ_API_KEY"}
     with patch.dict(os.environ, env, clear=True):
         with pytest.raises(ValueError, match="GROQ_API_KEY"):

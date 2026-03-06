@@ -239,7 +239,7 @@ def run_claude_agent(agent_name: str, prompt: str, mode: str = "avg") -> None:
             agent_name,
             "--model",
             model,
-            prompt
+            prompt,
         ],
         cwd=Path.cwd(),
     )
