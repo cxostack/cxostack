@@ -24,7 +24,10 @@ def call_groq(prompt: str, model: str = "llama-3.1-8b-instant", system: str = ""
     Raises:
         Exception: On API error or missing GROQ_API_KEY.
     """
-    client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        raise ValueError("GROQ_API_KEY is not set in the environment")
+    client = Groq(api_key=api_key)
 
     messages: list[dict] = []
     if system:
